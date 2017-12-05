@@ -1,0 +1,5 @@
+# Contents of the Build directory are system-specific
+Build/*
+
+# Can the Visual Studio solution be used by itself though?
+!Build/ZelosEngine.sln
