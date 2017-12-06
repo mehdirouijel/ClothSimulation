@@ -3,7 +3,7 @@
  * File Name     : Basic.frag
  *
  * Creation Date : 09/28/2017
- * Last Modified : 03/12/2017 - 04:04
+ * Last Modified : 06/12/2017 - 02:57
  * ==========================================================================================
  * Description   : FRAGMENT SHADER
  *                 Largely based on the tutorials found here : https://learnopengl.com/
@@ -15,19 +15,18 @@
 
 in VertexData
 {
-    vec3 position;
-    vec3 color;
-    vec2 texCoords;
-} i;
+    vec4 Position;
+    vec2 TexCoords;
+};
 
 uniform sampler2D Tex1;
 uniform sampler2D Tex2;
 uniform float MixValue;
 
-out vec4 fragColor;
+out vec4 FragColor;
 
 
 void main()
 {
-    fragColor = mix(texture(Tex1, i.texCoords), texture(Tex2, i.texCoords), MixValue);
+    FragColor = mix(texture(Tex1, TexCoords), texture(Tex2, TexCoords), MixValue);
 }
