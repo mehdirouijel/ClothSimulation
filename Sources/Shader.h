@@ -1,3 +1,6 @@
+#ifndef _SHADER_H_
+#define _SHADER_H_
+
 /* ==========================================================================================
  * Project Name  : ZelosEngine
  *
@@ -10,22 +13,26 @@
  * Author        : Mehdi Rouijel
  * ========================================================================================== */
 
-#ifndef _SHADER_H_
-#define _SHADER_H_
+#include <string>
+#include "glm/fwd.hpp"
 
 
-class ShaderProgram
+class Shader
 {
-public:
-    unsigned int id_;
 
-    ShaderProgram(const char *vShaderPath, const char *fShaderPath);
+public:
+    Shader(const char *vShaderPath, const char *fShaderPath);
 
     void Use();
     void SetBool(const std::string &name, bool value) const;
     void SetInt(const std::string &name, int value) const;
     void SetFloat(const std::string &name, float value) const;
     void SetMat4(const std::string &name, glm::mat4 value) const;
+    void SetVec3(const std::string &name, glm::vec3 value) const;
+
+private:
+    unsigned int id_;
+
 };
 
 

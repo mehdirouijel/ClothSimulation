@@ -3,7 +3,7 @@
  * File Name     : Shader.cpp
  *
  * Creation Date : 09/27/2017
- * Last Modified : 03/12/2017 - 05:53
+ * Last Modified : 09/12/2017 - 11:49
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -19,10 +19,13 @@
 #include <fstream>
 #include <string>
 
-#include "ShaderProgram.h"
+#include "Shader.h"
 
 
-ShaderProgram::ShaderProgram(const char *vShaderPath, const char *fShaderPath)
+// PUBLIC METHODS
+// --------------
+
+Shader::Shader(const char *vShaderPath, const char *fShaderPath)
 {
     std::string vShaderString;
     std::string fShaderString;
@@ -97,31 +100,37 @@ ShaderProgram::ShaderProgram(const char *vShaderPath, const char *fShaderPath)
 }
 
 void
-ShaderProgram::Use()
+Shader::Use()
 {
     glUseProgram(id_);
 }
 
 void
-ShaderProgram::SetBool(const std::string &name, bool value) const
+Shader::SetBool(const std::string &name, bool value) const
 {
     glUniform1i(glGetUniformLocation(id_, name.c_str()), (GLint)value);
 }
 
 void
-ShaderProgram::SetInt(const std::string &name, int value) const
+Shader::SetInt(const std::string &name, int value) const
 {
     glUniform1i(glGetUniformLocation(id_, name.c_str()), (GLint)value);
 }
 
 void
-ShaderProgram::SetFloat(const std::string &name, float value) const
+Shader::SetFloat(const std::string &name, float value) const
 {
     glUniform1f(glGetUniformLocation(id_, name.c_str()), (GLfloat)value);
 }
 
 void
-ShaderProgram::SetMat4(const std::string &name, glm::mat4 value) const
+Shader::SetMat4(const std::string &name, glm::mat4 value) const
 {
     glUniformMatrix4fv(glGetUniformLocation(id_, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
+}
+
+void
+Shader::SetVec3(const std::string &name, glm::vec3 value) const
+{
+    glUniform3fv(glGetUniformLocation(id_, name.c_str()), 1, glm::value_ptr(value));
 }

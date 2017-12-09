@@ -3,12 +3,16 @@
  * File Name     : ZelosEngine.cpp
  *
  * Creation Date : 09/24/2017
- * Last Modified : 06/12/2017 - 08:18
+ * Last Modified : 09/12/2017 - 17:59
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
  * Author        : Mehdi Rouijel
  * ========================================================================================== */
+
+#include <iostream>
+#include <vector>
+#include <string>
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -18,36 +22,54 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include <iostream>
-#include "ShaderProgram.h"
+#include "Shader.h"
+#include "Camera.h"
+#include "Model.h"
 
 
 // CONSTANTS AND GLOBALS
 // ---------------------
 
-const unsigned int SCREEN_WIDTH = 800;
-const unsigned int SCREEN_HEIGHT = 600;
+const unsigned int SCREEN_WIDTH = 1280;
+const unsigned int SCREEN_HEIGHT = 720;
 
-const float CAMERA_SPEED = 2.0f;
+const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
 
+float LastTime = 0.0f;
+float DeltaTime = 0.0f;
 
-float lastTime = 0.0f;
-float deltaTime = 0.0f;
-
-glm::vec3 cameraPosition = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-glm::vec3 cameraRight = glm::normalize(glm::cross(cameraFront, cameraUp));
-float cameraSpeed = 0.0f;
-
-float mixValue = 0.2f;
+Camera camera(glm::vec3(0.0f, 5.0f, 10.0f));
+float LastCameraX = 0.5f * SCREEN_WIDTH;
+float LastCameraY = 0.5f * SCREEN_HEIGHT;
+bool FirstMouseInput = true;
 
 
 // PROTOTYPES
 // ----------
 
-void FramebufferSizeCallback(GLFWwindow *window, int width, int height);
 void ProcessInput(GLFWwindow *window);
+
+void FramebufferSizeCallback(GLFWwindow *window, int width, int height);
+void MouseCallback(GLFWwindow *window, double xPosition, double yPosition);
+
+
+struct Light
+{
+    glm::vec3 Position;
+    glm::vec3 Direction;
+    glm::vec3 Color;
+
+    float CutOff;
+    float OuterCutOff;
+
+    glm::vec3 AmbientIntensity;
+    glm::vec3 DiffuseIntensity;
+    glm::vec3 SpecularIntensity;
+
+    float ConstantAtt;
+    float LinearAtt;
+    float QuadraticAtt;
+};
 
 
 // ENTRY POINT
@@ -70,7 +92,12 @@ main()
         return -1;
     }
     glfwMakeContextCurrent(window);
+
     glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
+    glfwSetCursorPosCallback(window, MouseCallback);
+
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -84,169 +111,95 @@ main()
     // CPU DATA
     // --------
 
-    GLfloat vertices[] = {
-        //  positions    //  // tex  //
-       -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-        0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-       -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-       -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-       -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-       -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-       -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-       -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-       -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-       -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-       -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-       -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-       -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-       -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-        0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-       -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-       -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-       -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-       -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-       -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-
-    glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f),
-        glm::vec3( 2.0f,  5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3( 2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f,  3.0f, -7.5f),
-        glm::vec3( 1.3f, -2.0f, -2.5f),
-        glm::vec3( 1.5f,  2.0f, -2.5f),
-        glm::vec3( 1.5f,  0.2f, -1.5f),
-        glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
-
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 projection;
+    glm::mat4 normalMatrix;
+
+    Light light;
+    light.Position = glm::vec3(10.0f, 12.0f, 10.0f);
+    light.Direction = glm::normalize(-light.Position);
+    light.Color = glm::vec3(0.9f, 0.9f, 0.8f);
+    light.CutOff = glm::cos(glm::radians(18.0f));
+    light.OuterCutOff = glm::cos(glm::radians(23.0f));
+    light.AmbientIntensity = glm::vec3(0.2f, 0.2f, 0.2f);
+    light.DiffuseIntensity = glm::vec3(0.8f, 0.8f, 0.8f);
+    light.SpecularIntensity = glm::vec3(1.0f, 1.0f, 1.0f);
+    // Attenuation values from: http://wiki.ogre3d.org/tiki-index.php?page=-Point+Light+Attenuation
+    light.ConstantAtt = 1.0f;
+    light.LinearAtt = 0.027f;
+    light.QuadraticAtt = 0.0028f;
+
+
+    //   Set up shaders
+    //   --------------
+
+    Shader SHDR_basic("../Sources/Shaders/Basic.vert", "../Sources/Shaders/Basic.frag");
+    Shader SHDR_ground("../Sources/Shaders/Basic.vert", "../Sources/Shaders/Ground.frag");
+
+
+    //   Load models
+    //   -----------
+
+    Model ground("../Assets/groundPlane.obj", glm::vec3(0.75f, 0.75f, 0.8f));
+    Model pole("../Assets/pole.obj", glm::vec3(0.8f, 0.8f, 0.8f));
+    Model cloth("../Assets/cloth.obj", glm::vec3(0.1f, 0.5f, 0.6f));
 
 
     //
     // GPU DATA
     // --------
-    //   Set up shaders
-    //   --------------
 
-    ShaderProgram shader("../Sources/Shaders/Basic.vert", "../Sources/Shaders/Basic.frag");
-
-
-    //   Set up buffers
-    //   --------------
-
-    GLuint vao;
-    GLuint vbo;
-    //GLuint ebo;
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
-    //glGenBuffers(1, &ebo);
-
-    glBindVertexArray(vao);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    // position: layout(location = 0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    // color: layout(location = 1)
-    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void *)(3*sizeof(float)));
-    //glEnableVertexAttribArray(1);
-
-    // texture coordinates: layout(location = 2)
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void *)(3*sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    // The VAO stores the EBO unbind call, so don't unbind the latter
-    // before the former, or else.
-    // Also, unbinding the VBO and EBO isn't necessary at all in
-    // the first place...
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //
-    //glBindVertexArray(0);
-    //
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+    //glPolygonMode(GL_FRONT, GL_FILL);
     glEnable(GL_DEPTH_TEST);
 
 
     //   Textures
     //   --------
 
-    GLuint texture1;
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
+    GLuint noiseTexture;
+    glGenTextures(1, &noiseTexture);
+    glBindTexture(GL_TEXTURE_2D, noiseTexture);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     int width;
     int height;
     int channelCount;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char *data = (unsigned char *)stbi_load("../Assets/container.jpg", &width, &height, &channelCount, 0);
+    unsigned char *data = (unsigned char *)stbi_load("../Assets/white_noise.png", &width, &height, &channelCount, STBI_rgb_alpha);
     if (data)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {
-        std::cout << "Failed to load texture 1" << std::endl;
+        std::cout << "Failed to load texture" << std::endl;
     }
     stbi_image_free(data);
 
-    GLuint texture2;
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    GLuint checkeredTexture;
+    glGenTextures(1, &checkeredTexture);
+    glBindTexture(GL_TEXTURE_2D, checkeredTexture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    data = (unsigned char *)stbi_load("../Assets/awesomeface.png", &width, &height, &channelCount, 0);
+    data = (unsigned char *)stbi_load("../Assets/checkered.png", &width, &height, &channelCount, STBI_rgb_alpha);
     if (data)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {
-        std::cout << "Failed to load texture 2" << std::endl;
+        std::cout << "Failed to load texture" << std::endl;
     }
     stbi_image_free(data);
 
@@ -254,10 +207,10 @@ main()
     //   Uniforms
     //   --------
 
-    shader.Use(); // Activate shader to set uniforms
-
-    shader.SetInt("Tex1", 0); // Set uniforms
-    shader.SetInt("Tex2", 1); // Set uniforms
+    SHDR_basic.Use(); // Activate shader to set uniforms
+    SHDR_basic.SetInt("NoiseTexture", 0); // Set uniforms
+    SHDR_ground.Use();
+    SHDR_ground.SetInt("CheckeredTexture", 1); // Set uniforms
 
 
     //
@@ -268,54 +221,79 @@ main()
     {
         // Timing.
         float currentTime = (float)glfwGetTime();
-        deltaTime = currentTime - lastTime;
-        lastTime = currentTime;
-        cameraSpeed = CAMERA_SPEED * deltaTime;
+        DeltaTime = currentTime - LastTime;
+        LastTime = currentTime;
 
         // Process input.
         ProcessInput(window);
 
         // Render.
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
+        glBindTexture(GL_TEXTURE_2D, noiseTexture);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
+        glBindTexture(GL_TEXTURE_2D, checkeredTexture);
 
 
-        projection = glm::perspective(glm::radians(75.0f), (float)(SCREEN_WIDTH/SCREEN_HEIGHT), 0.1f, 100.0f);
-        //view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
+        projection = glm::perspective(glm::radians(camera.FOV), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.0f);
+        view = camera.GetViewMatrix();
 
-        view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, cameraUp);
+        SHDR_ground.Use();
+        model = glm::mat4(1.0f);
+        normalMatrix = glm::transpose(glm::inverse(model));
+        SHDR_ground.SetMat4("Model", model);
+        SHDR_ground.SetMat4("NormalMatrix", normalMatrix);
+        SHDR_ground.SetMat4("View", view);
+        SHDR_ground.SetMat4("Projection", projection);
+        SHDR_ground.SetVec3("CameraPosition", camera.Position);
+        SHDR_ground.SetVec3("Light.position", light.Position);
+        SHDR_ground.SetVec3("Light.direction", light.Direction);
+        SHDR_ground.SetVec3("Light.color", light.Color);
+        SHDR_ground.SetFloat("Light.cutOff", light.CutOff);
+        SHDR_ground.SetFloat("Light.outerCutOff", light.OuterCutOff);
+        SHDR_ground.SetVec3("Light.ambientIntensity", light.AmbientIntensity);
+        SHDR_ground.SetVec3("Light.diffuseIntensity", light.DiffuseIntensity);
+        SHDR_ground.SetVec3("Light.specularIntensity", light.SpecularIntensity);
+        SHDR_ground.SetFloat("Light.constantAtt", light.ConstantAtt);
+        SHDR_ground.SetFloat("Light.linearAtt", light.LinearAtt);
+        SHDR_ground.SetFloat("Light.quadraticAtt", light.QuadraticAtt);
+        SHDR_ground.SetFloat("Shininess", 2.0f);
+
+        ground.Draw(SHDR_ground);
 
 
-        shader.Use();
-        shader.SetMat4("View", view);
-        shader.SetMat4("Projection", projection);
-        shader.SetFloat("MixValue", mixValue);
+        SHDR_basic.Use();
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(-4.0f, 0.0f, 4.0f));
+        normalMatrix = glm::transpose(glm::inverse(model));
+        SHDR_basic.SetMat4("Model", model);
+        SHDR_basic.SetMat4("NormalMatrix", normalMatrix);
+        SHDR_basic.SetMat4("View", view);
+        SHDR_basic.SetMat4("Projection", projection);
+        SHDR_basic.SetVec3("CameraPosition", camera.Position);
+        SHDR_basic.SetVec3("Light.position", light.Position);
+        SHDR_basic.SetVec3("Light.direction", light.Direction);
+        SHDR_basic.SetVec3("Light.color", light.Color);
+        SHDR_basic.SetFloat("Light.cutOff", light.CutOff);
+        SHDR_basic.SetFloat("Light.outerCutOff", light.OuterCutOff);
+        SHDR_basic.SetVec3("Light.ambientIntensity", light.AmbientIntensity);
+        SHDR_basic.SetVec3("Light.diffuseIntensity", light.DiffuseIntensity);
+        SHDR_basic.SetVec3("Light.specularIntensity", light.SpecularIntensity);
+        SHDR_basic.SetFloat("Light.constantAtt", light.ConstantAtt);
+        SHDR_basic.SetFloat("Light.linearAtt", light.LinearAtt);
+        SHDR_basic.SetFloat("Light.quadraticAtt", light.QuadraticAtt);
+        SHDR_basic.SetFloat("Shininess", 32.0f);
 
+        pole.Draw(SHDR_basic);
 
-        glBindVertexArray(vao);
-        for (unsigned int i = 0; i < 10; ++i)
-        {
-            model = glm::translate(glm::mat4(1.0f), cubePositions[i]);
-            float angle = 36.0f * i;
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.95f, 4.0f));
+        normalMatrix = glm::transpose(glm::inverse(model));
+        SHDR_basic.SetMat4("Model", model);
+        SHDR_basic.SetMat4("NormalMatrix", normalMatrix);
 
-            if (i % 2 == 0)
-            {
-                model = glm::rotate(model, (float)(glfwGetTime()*glm::radians(0.5f*angle)), glm::vec3(1.0f, 0.3f, 0.6f));
-            }
-            else
-            {
-                model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.6f));
-            }
+        cloth.Draw(SHDR_basic);
 
-            shader.SetMat4("Model", model);
-
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
 
         // Update events and swap buffers.
         glfwPollEvents();
@@ -325,8 +303,8 @@ main()
 
     // Not really necessary if we quit the program right then
     // and there, but I like to be thorough and explicit.
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
+    //glDeleteVertexArrays(1, &vao);
+    //glDeleteBuffers(1, &vbo);
     //glDeleteBuffers(1, &ebo);
 
     glfwTerminate();
@@ -344,37 +322,29 @@ ProcessInput(GLFWwindow *window)
     {
         glfwSetWindowShouldClose(window, true);
     }
-    else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
-        cameraPosition += cameraFront * cameraSpeed;
+        camera.ProcessKeyboard(FORWARD, DeltaTime);
     }
-    else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
     {
-        cameraPosition -= cameraFront * cameraSpeed;
+        camera.ProcessKeyboard(BACKWARD, DeltaTime);
     }
-    else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     {
-        cameraPosition -= cameraRight * cameraSpeed;
+        camera.ProcessKeyboard(LEFT, DeltaTime);
     }
-    else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     {
-        cameraPosition += cameraRight * cameraSpeed;
+        camera.ProcessKeyboard(RIGHT, DeltaTime);
     }
-    else if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
     {
-        mixValue += 0.005f;
-        if (mixValue > 1.0f)
-        {
-            mixValue = 1.0f;
-        }
+        camera.ProcessKeyboard(UP, DeltaTime);
     }
-    else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
     {
-        mixValue -= 0.005f;
-        if (mixValue < 0.0f)
-        {
-            mixValue = 0.0f;
-        }
+        camera.ProcessKeyboard(DOWN, DeltaTime);
     }
 }
 
@@ -387,3 +357,22 @@ FramebufferSizeCallback(GLFWwindow *window, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
+
+void
+MouseCallback(GLFWwindow *window, double xPosition, double yPosition)
+{
+    if (FirstMouseInput)
+    {
+        LastCameraX = (float)xPosition;
+        LastCameraY = (float)yPosition;
+        FirstMouseInput = false;
+    }
+
+    float xOffset = (float)xPosition - LastCameraX;
+    float yOffset = (float)yPosition - LastCameraY;
+    LastCameraX = (float)xPosition;
+    LastCameraY = (float)yPosition;
+
+    camera.ProcessMouse(xOffset, yOffset);
+}
+

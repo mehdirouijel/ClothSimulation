@@ -2,4 +2,5 @@
 Build/*
 
 # Can the Visual Studio solution be used by itself though?
+!Build/*.dll
 !Build/ZelosEngine.sln

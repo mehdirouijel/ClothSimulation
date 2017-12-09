@@ -4,7 +4,7 @@ REM Project Name  : ZelosEngine
 REM File Name     : build.bat
 REM
 REM Creation Date : 09/24/2017
-REM Last Modified : 03/12/2017 - 05:12
+REM Last Modified : 09/12/2017 - 08:55
 REM ==========================================================================================
 REM Description   : Build configuration
 REM
@@ -16,7 +16,7 @@ REM ============================================================================
 set CompilerFlags=-nologo -MDd -Gm- -GR- -EHsc -Oi- -WX -W4 -wd4100 -wd4189 -wd4201 -Z7
 set IncludesPath="..\Includes"
 set LibrariesPath=..\Libs
-set AdditionalLibs=user32.lib gdi32.lib opengl32.lib shell32.lib glfw3.lib
+set AdditionalLibs=user32.lib gdi32.lib opengl32.lib shell32.lib glfw3.lib assimp.lib
 set LinkerFlags=-OPT:REF -LIBPATH:%LibrariesPath% %AdditionalLibs%
 
 

@@ -1,9 +1,9 @@
 /* ==========================================================================================
  * Project Name  : ZelosEngine
- * File Name     : Basic.frag
+ * File Name     : Ground.frag
  *
  * Creation Date : 09/28/2017
- * Last Modified : 09/12/2017 - 17:28
+ * Last Modified : 09/12/2017 - 17:29
  * ==========================================================================================
  * Description   : FRAGMENT SHADER
  *                 Largely based on the tutorials found here : https://learnopengl.com/
@@ -41,7 +41,7 @@ in VertexData
 
 uniform vec3 CameraPosition;
 uniform sampler2D NoiseTexture;
-
+uniform sampler2D CheckeredTexture;
 uniform float Shininess;
 uniform light Light;
 
@@ -58,14 +58,14 @@ void main()
     // Ambient Component
     // -----------------
 
-    vec3 ambient = Light.ambientIntensity * Color.rgb;
+    vec3 ambient = Light.ambientIntensity * texture(CheckeredTexture, TexCoords).stp;
 
 
     // Diffuse Component
     // -----------------
 
     float diffuseCoeff = max(dot(normal, lightDirection), 0.0f);
-    vec3 diffuse = Light.diffuseIntensity * diffuseCoeff * Color.rgb;
+    vec3 diffuse = Light.diffuseIntensity * diffuseCoeff * texture(CheckeredTexture, TexCoords).stp;
 
 
     // Specular Component
@@ -75,7 +75,7 @@ void main()
     vec3 reflectDirection = reflect(-lightDirection, normal);
 
     float specularCoeff = pow(max(dot(cameraDirection, reflectDirection), 0.0f), Shininess);
-    vec3 specular = Light.specularIntensity * specularCoeff * Color.rgb;
+    vec3 specular = Light.specularIntensity * specularCoeff * texture(CheckeredTexture, TexCoords).stp;
 
 
     // Spotlight Effect
@@ -97,8 +97,8 @@ void main()
     ambient *= attenuation;
     diffuse *= attenuation;
     specular *= attenuation;
-
     
+
     finalColor = ambient + diffuse + specular;
 
     // Dithering
