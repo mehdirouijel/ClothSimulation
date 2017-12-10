@@ -3,7 +3,7 @@
  * File Name     : ZelosEngine.cpp
  *
  * Creation Date : 09/24/2017
- * Last Modified : 09/12/2017 - 17:59
+ * Last Modified : 10/12/2017 - 19:10
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -35,6 +35,9 @@ const unsigned int SCREEN_HEIGHT = 720;
 
 const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
 
+const unsigned int SOLVER_ITERATIONS = 30;
+
+
 float LastTime = 0.0f;
 float DeltaTime = 0.0f;
 
@@ -42,6 +45,9 @@ Camera camera(glm::vec3(0.0f, 5.0f, 10.0f));
 float LastCameraX = 0.5f * SCREEN_WIDTH;
 float LastCameraY = 0.5f * SCREEN_HEIGHT;
 bool FirstMouseInput = true;
+bool CursorEnabled = true;
+bool TabWasPressed = false;
+bool TabIsPressed = false;
 
 
 // PROTOTYPES
@@ -97,9 +103,6 @@ main()
     glfwSetCursorPosCallback(window, MouseCallback);
 
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -142,7 +145,7 @@ main()
     //   -----------
 
     Model ground("../Assets/groundPlane.obj", glm::vec3(0.75f, 0.75f, 0.8f));
-    Model pole("../Assets/pole.obj", glm::vec3(0.8f, 0.8f, 0.8f));
+    //Model pole("../Assets/pole.obj", glm::vec3(0.8f, 0.8f, 0.8f));
     Model cloth("../Assets/cloth.obj", glm::vec3(0.1f, 0.5f, 0.6f));
 
 
@@ -150,7 +153,7 @@ main()
     // GPU DATA
     // --------
 
-    //glPolygonMode(GL_FRONT, GL_FILL);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_DEPTH_TEST);
 
 
@@ -209,9 +212,50 @@ main()
 
     SHDR_basic.Use(); // Activate shader to set uniforms
     SHDR_basic.SetInt("NoiseTexture", 0); // Set uniforms
+    SHDR_basic.SetVec3("CameraPosition", camera.Position);
+    SHDR_basic.SetVec3("Light.position", light.Position);
+    SHDR_basic.SetVec3("Light.direction", light.Direction);
+    SHDR_basic.SetVec3("Light.color", light.Color);
+    SHDR_basic.SetFloat("Light.cutOff", light.CutOff);
+    SHDR_basic.SetFloat("Light.outerCutOff", light.OuterCutOff);
+    SHDR_basic.SetVec3("Light.ambientIntensity", light.AmbientIntensity);
+    SHDR_basic.SetVec3("Light.diffuseIntensity", light.DiffuseIntensity);
+    SHDR_basic.SetVec3("Light.specularIntensity", light.SpecularIntensity);
+    SHDR_basic.SetFloat("Light.constantAtt", light.ConstantAtt);
+    SHDR_basic.SetFloat("Light.linearAtt", light.LinearAtt);
+    SHDR_basic.SetFloat("Light.quadraticAtt", light.QuadraticAtt);
+    SHDR_basic.SetFloat("Shininess", 32.0f);
+
     SHDR_ground.Use();
     SHDR_ground.SetInt("CheckeredTexture", 1); // Set uniforms
+    SHDR_ground.SetVec3("CameraPosition", camera.Position);
+    SHDR_ground.SetVec3("Light.position", light.Position);
+    SHDR_ground.SetVec3("Light.direction", light.Direction);
+    SHDR_ground.SetVec3("Light.color", light.Color);
+    SHDR_ground.SetFloat("Light.cutOff", light.CutOff);
+    SHDR_ground.SetFloat("Light.outerCutOff", light.OuterCutOff);
+    SHDR_ground.SetVec3("Light.ambientIntensity", light.AmbientIntensity);
+    SHDR_ground.SetVec3("Light.diffuseIntensity", light.DiffuseIntensity);
+    SHDR_ground.SetVec3("Light.specularIntensity", light.SpecularIntensity);
+    SHDR_ground.SetFloat("Light.constantAtt", light.ConstantAtt);
+    SHDR_ground.SetFloat("Light.linearAtt", light.LinearAtt);
+    SHDR_ground.SetFloat("Light.quadraticAtt", light.QuadraticAtt);
+    SHDR_ground.SetFloat("Shininess", 2.0f);
 
+
+    std::vector<glm::vec3> tentativePositions(cloth.Meshes[0].Vertices.size());
+    std::vector<glm::vec3> deltaPositions(cloth.Meshes[0].Vertices.size());
+    std::vector<unsigned int> neighborsIndices;
+
+    Mesh *mesh = &cloth.Meshes[0];
+
+    for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
+    {
+        float mass = 0.5f;
+        mesh->Masses.push_back(mass);
+        mesh->InvMasses.push_back(1.0f / mesh->Masses[index]);
+        mesh->Velocities.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+    }
 
     //
     // RENDER LOOP
@@ -226,6 +270,7 @@ main()
 
         // Process input.
         ProcessInput(window);
+        //mesh->Vertices[cloth.TopLeftIndex].Position.x += 0.001f * glm::cos(DeltaTime);
 
         // Render.
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -241,57 +286,71 @@ main()
         view = camera.GetViewMatrix();
 
         SHDR_ground.Use();
-        model = glm::mat4(1.0f);
+        SHDR_ground.SetMat4("Projection", projection);
+        SHDR_ground.SetMat4("View", view);
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -4.0f, 0.0f));
         normalMatrix = glm::transpose(glm::inverse(model));
         SHDR_ground.SetMat4("Model", model);
         SHDR_ground.SetMat4("NormalMatrix", normalMatrix);
-        SHDR_ground.SetMat4("View", view);
-        SHDR_ground.SetMat4("Projection", projection);
-        SHDR_ground.SetVec3("CameraPosition", camera.Position);
-        SHDR_ground.SetVec3("Light.position", light.Position);
-        SHDR_ground.SetVec3("Light.direction", light.Direction);
-        SHDR_ground.SetVec3("Light.color", light.Color);
-        SHDR_ground.SetFloat("Light.cutOff", light.CutOff);
-        SHDR_ground.SetFloat("Light.outerCutOff", light.OuterCutOff);
-        SHDR_ground.SetVec3("Light.ambientIntensity", light.AmbientIntensity);
-        SHDR_ground.SetVec3("Light.diffuseIntensity", light.DiffuseIntensity);
-        SHDR_ground.SetVec3("Light.specularIntensity", light.SpecularIntensity);
-        SHDR_ground.SetFloat("Light.constantAtt", light.ConstantAtt);
-        SHDR_ground.SetFloat("Light.linearAtt", light.LinearAtt);
-        SHDR_ground.SetFloat("Light.quadraticAtt", light.QuadraticAtt);
-        SHDR_ground.SetFloat("Shininess", 2.0f);
-
         ground.Draw(SHDR_ground);
 
 
-        SHDR_basic.Use();
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(-4.0f, 0.0f, 4.0f));
-        normalMatrix = glm::transpose(glm::inverse(model));
-        SHDR_basic.SetMat4("Model", model);
-        SHDR_basic.SetMat4("NormalMatrix", normalMatrix);
-        SHDR_basic.SetMat4("View", view);
-        SHDR_basic.SetMat4("Projection", projection);
-        SHDR_basic.SetVec3("CameraPosition", camera.Position);
-        SHDR_basic.SetVec3("Light.position", light.Position);
-        SHDR_basic.SetVec3("Light.direction", light.Direction);
-        SHDR_basic.SetVec3("Light.color", light.Color);
-        SHDR_basic.SetFloat("Light.cutOff", light.CutOff);
-        SHDR_basic.SetFloat("Light.outerCutOff", light.OuterCutOff);
-        SHDR_basic.SetVec3("Light.ambientIntensity", light.AmbientIntensity);
-        SHDR_basic.SetVec3("Light.diffuseIntensity", light.DiffuseIntensity);
-        SHDR_basic.SetVec3("Light.specularIntensity", light.SpecularIntensity);
-        SHDR_basic.SetFloat("Light.constantAtt", light.ConstantAtt);
-        SHDR_basic.SetFloat("Light.linearAtt", light.LinearAtt);
-        SHDR_basic.SetFloat("Light.quadraticAtt", light.QuadraticAtt);
-        SHDR_basic.SetFloat("Shininess", 32.0f);
+        for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
+        {
+            if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
+            {
+                mesh->Velocities[index] += mesh->Masses[index] * glm::vec3(0.0f, -20.0f, 0.0f) * DeltaTime * DeltaTime;
+                tentativePositions[index] = mesh->Vertices[index].Position + mesh->Velocities[index] * DeltaTime;
+            }
+        }
 
-        pole.Draw(SHDR_basic);
+        // c.f. Unified Particle Physics paper Algorithm 3
+        // Simple distance constraint. c.f. PBD paper 3.3
+        for (unsigned int index = 0; index < SOLVER_ITERATIONS; ++index)
+        {
+            for (auto constraintIt = mesh->DistConstraints.begin();
+                 constraintIt != mesh->DistConstraints.end();
+                 ++constraintIt)
+            {
+                constraintIt->Solve(mesh, &tentativePositions);
+            }
+        }
+
+        // Update velocities.
+        for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
+        {
+            if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
+            {
+                mesh->Velocities[index] = (tentativePositions[index] - mesh->Vertices[index].Position) / DeltaTime;
+            }
+        }
+
+        // Update positions.
+        for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
+        {
+            if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
+            {
+                mesh->Vertices[index].Position = tentativePositions[index];
+            }
+        }
+
+        cloth.Update();
+
+
+        SHDR_basic.Use();
+        SHDR_basic.SetMat4("Projection", projection);
+        SHDR_basic.SetMat4("View", view);
+
+        //model = glm::translate(glm::mat4(1.0f), glm::vec3(-4.0f, 0.0f, 4.0f));
+        //normalMatrix = glm::transpose(glm::inverse(model));
+        //SHDR_basic.SetMat4("Model", model);
+        //SHDR_basic.SetMat4("NormalMatrix", normalMatrix);
+        //pole.Draw(SHDR_basic);
 
         model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.95f, 4.0f));
         normalMatrix = glm::transpose(glm::inverse(model));
         SHDR_basic.SetMat4("Model", model);
         SHDR_basic.SetMat4("NormalMatrix", normalMatrix);
-
         cloth.Draw(SHDR_basic);
 
 
@@ -322,6 +381,14 @@ ProcessInput(GLFWwindow *window)
     {
         glfwSetWindowShouldClose(window, true);
     }
+    if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS)
+    {
+        TabIsPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_RELEASE)
+    {
+        TabIsPressed = false;
+    }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
         camera.ProcessKeyboard(FORWARD, DeltaTime);
@@ -346,6 +413,23 @@ ProcessInput(GLFWwindow *window)
     {
         camera.ProcessKeyboard(DOWN, DeltaTime);
     }
+
+    if (TabIsPressed && !TabWasPressed)
+    {
+        if (CursorEnabled)
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            CursorEnabled = false;
+        }
+        else
+        {
+            FirstMouseInput = true;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            CursorEnabled = true;
+        }
+    }
+
+    TabWasPressed = TabIsPressed;
 }
 
 
@@ -361,18 +445,21 @@ FramebufferSizeCallback(GLFWwindow *window, int width, int height)
 void
 MouseCallback(GLFWwindow *window, double xPosition, double yPosition)
 {
-    if (FirstMouseInput)
+    if (!CursorEnabled)
     {
+        if (FirstMouseInput)
+        {
+            LastCameraX = (float)xPosition;
+            LastCameraY = (float)yPosition;
+            FirstMouseInput = false;
+        }
+
+        float xOffset = (float)xPosition - LastCameraX;
+        float yOffset = (float)yPosition - LastCameraY;
         LastCameraX = (float)xPosition;
         LastCameraY = (float)yPosition;
-        FirstMouseInput = false;
+
+        camera.ProcessMouse(xOffset, yOffset);
     }
-
-    float xOffset = (float)xPosition - LastCameraX;
-    float yOffset = (float)yPosition - LastCameraY;
-    LastCameraX = (float)xPosition;
-    LastCameraY = (float)yPosition;
-
-    camera.ProcessMouse(xOffset, yOffset);
 }
 

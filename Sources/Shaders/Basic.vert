@@ -3,7 +3,7 @@
  * File Name     : Basic.vert
  *
  * Creation Date : 09/28/2017
- * Last Modified : 09/12/2017 - 17:02
+ * Last Modified : 10/12/2017 - 11:47
  * ==========================================================================================
  * Description   : VERTEX SHADER
  *                 Largely based on the tutorials found here : https://learnopengl.com/
@@ -26,7 +26,7 @@ out VertexData
     vec4 Color;
 };
 
-// TODO: Look into uniform blocks
+// TODO(): Look into uniform blocks
 uniform mat4 Model;
 uniform mat4 View;
 uniform mat4 Projection;

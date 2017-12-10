@@ -5,7 +5,7 @@
  * File Name     : Mesh.h
  *
  * Creation Date : 09/12/2017 - 06:58
- * Last Modified : 09/12/2017 - 12:56
+ * Last Modified : 10/12/2017 - 17:22
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -13,7 +13,10 @@
  * ========================================================================================== */
 
 #include <vector>
+#include <map>
 #include "glm/glm.hpp"
+
+#include "DistanceConstraint.h"
 
 
 // IMPORTANT(): Careful changing this struct!
@@ -37,10 +40,20 @@ class Mesh
 public:
     std::vector<Vertex> Vertices;
     std::vector<unsigned int> Indices;
+    std::map<unsigned int, std::vector<unsigned int>> Neighbors;
+    std::vector<glm::vec3> Velocities;
+    std::vector<float> Masses;
+    std::vector<float> InvMasses;
+    std::vector<DistanceConstraint> DistConstraints;
+
     unsigned int VAO;
 
-    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
+    Mesh(std::vector<Vertex> vertices,
+         std::vector<unsigned int> indices,
+         std::map<unsigned int, std::vector<unsigned int>> neighbors);
 
+    void FindNeighbors();
+    void Update();
     void Draw(Shader shader);
 
 

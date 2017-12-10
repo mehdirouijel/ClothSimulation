@@ -3,7 +3,7 @@
  * File Name     : Basic.frag
  *
  * Creation Date : 09/28/2017
- * Last Modified : 09/12/2017 - 17:28
+ * Last Modified : 10/12/2017 - 06:55
  * ==========================================================================================
  * Description   : FRAGMENT SHADER
  *                 Largely based on the tutorials found here : https://learnopengl.com/
@@ -105,7 +105,7 @@ void main()
     // ---------
     // (to limit color banding; c.f.: https://www.shadertoy.com/view/MlV3R1)
 
-    float noise = texture(NoiseTexture, 2.0f*TexCoords).r;
+    float noise = texture(NoiseTexture, TexCoords).r;
     finalColor += mix(-0.5f/128.0f, 0.5f/128.0f, noise);
 
 

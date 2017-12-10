@@ -5,7 +5,7 @@
  * File Name     : Model.h
  *
  * Creation Date : 09/12/2017 - 08:08
- * Last Modified : 09/12/2017 - 11:17
+ * Last Modified : 10/12/2017 - 18:57
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -30,9 +30,12 @@ public:
     std::vector<Mesh> Meshes;
     glm::vec3 Color;
     std::string Directory;
+    unsigned int TopLeftIndex;
+    unsigned int TopRightIndex;
 
     Model(const std::string &path, const glm::vec3 &color = glm::vec3(0.5f, 0.5f, 0.5f));
 
+    void Update();
     void Draw(Shader shader);
 
 

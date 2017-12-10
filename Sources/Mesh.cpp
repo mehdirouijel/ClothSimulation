@@ -2,7 +2,7 @@
  * File Name     : Mesh.cpp
  *
  * Creation Date : 09/12/2017 - 07:06
- * Last Modified : 09/12/2017 - 13:58
+ * Last Modified : 10/12/2017 - 17:43
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -19,12 +19,32 @@
 // PUBLIC METHODS
 // --------------
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices)
+Mesh::Mesh(std::vector<Vertex> vertices,
+           std::vector<unsigned int> indices,
+           std::map<unsigned int, std::vector<unsigned int>> neighbors)
 {
     Vertices = vertices;
     Indices = indices;
+    Neighbors = neighbors;
+
+    for (auto it = Neighbors.begin(); it != Neighbors.end(); ++it)
+    {
+        for (auto neighborIt = it->second.begin(); neighborIt != it->second.end(); ++neighborIt)
+        {
+            DistConstraints.push_back(DistanceConstraint(this, it->first, (*neighborIt)));
+        }
+    }
 
     Initialize();
+}
+
+void
+Mesh::Update()
+{
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, Vertices.size()*sizeof(Vertex), &Vertices[0], GL_STATIC_DRAW);
+    glBindVertexArray(0);
 }
 
 void

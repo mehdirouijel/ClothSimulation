@@ -2,7 +2,7 @@
  * File Name     : Model.cpp
  *
  * Creation Date : 09/12/2017 - 08:09
- * Last Modified : 09/12/2017 - 13:00
+ * Last Modified : 10/12/2017 - 18:57
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -10,6 +10,7 @@
  * ========================================================================================== */
 
 #include <iostream>
+#include <algorithm>
 
 #include "Model.h"
 
@@ -22,6 +23,15 @@ Model::Model(const std::string &path, const glm::vec3 &color)
     Color = color;
 
     LoadModel(path);
+}
+
+void
+Model::Update()
+{
+    for (unsigned int index = 0; index < Meshes.size(); ++index)
+    {
+        Meshes[index].Update();
+    }
 }
 
 void
@@ -77,6 +87,11 @@ Model::ProcessMesh(const aiScene *scene, aiMesh *mesh)
 {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
+    std::map<unsigned int, std::vector<unsigned int>> neighbors;
+    float maxY = 0.0f;
+    float minX = 9999.9f;
+    float maxX = 0.0f;
+
 
     for (unsigned int index = 0; index < mesh->mNumVertices; ++index)
     {
@@ -116,6 +131,24 @@ Model::ProcessMesh(const aiScene *scene, aiMesh *mesh)
         vertex.Color = Color;
 
         vertices.push_back(vertex);
+
+        // TODO(): Ad hoc way of selecting vertices to pin in place.
+        // Move to something better. Mouse-select vertices?
+        if (vertex.Position.y >= maxY)
+        {
+            maxY = vertex.Position.y;
+
+            if (vertex.Position.x <= minX)
+            {
+                minX = vertex.Position.x;
+                TopLeftIndex = index;
+            }
+            else if (vertex.Position.x >= maxX)
+            {
+                maxX = vertex.Position.x;
+                TopRightIndex = index;
+            }
+        }
     }
 
     for (unsigned int faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex)
@@ -126,8 +159,36 @@ Model::ProcessMesh(const aiScene *scene, aiMesh *mesh)
         {
             indices.push_back(face.mIndices[index]);
         }
+
+        // Find neighbors.
+        for (unsigned int vertexIndex = 0; vertexIndex < face.mNumIndices; ++vertexIndex)
+        {
+            auto ret = neighbors.insert(std::pair<unsigned int, std::vector<unsigned int>>(
+                    face.mIndices[vertexIndex], std::vector<unsigned int>()));
+
+            // ret will be an iterator pointing to:
+            //  - the inserted element, if an equivalent key was not found
+            //  - the existing element with the equivalent key
+
+            for (unsigned int neighborIndex = 0; neighborIndex < face.mNumIndices; ++neighborIndex)
+            {
+                if (face.mIndices[vertexIndex] != face.mIndices[neighborIndex])
+                {
+                    // We don't want to store the vertex itself as one of its neighbors.
+
+                    auto begin = ret.first->second.begin();
+                    auto end = ret.first->second.end();
+                    if (std::find(begin, end, face.mIndices[neighborIndex]) == end)
+                    {
+                        // The neighbor is not stored yet.
+
+                        ret.first->second.push_back(face.mIndices[neighborIndex]);
+                    }
+                }
+            }
+        }
     }
 
-    return Mesh(vertices, indices);
+    return Mesh(vertices, indices, neighbors);
 }
 
