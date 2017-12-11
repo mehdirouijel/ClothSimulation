@@ -1,8 +1,9 @@
 /* ==========================================================================================
+ * Project Name  : ClothSimulation
  * File Name     : Camera.cpp
  *
  * Creation Date : 07/12/2017 - 06:42
- * Last Modified : 09/12/2017 - 15:37
+ * Last Modified : 11/12/2017 - 16:51
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *

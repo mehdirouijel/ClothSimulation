@@ -2,10 +2,11 @@
 #define _CAMERA_H_
 
 /* ==========================================================================================
+ * Project Name  : ClothSimulation
  * File Name     : Camera.h
  *
  * Creation Date : 07/12/2017 - 06:31
- * Last Modified : 09/12/2017 - 15:37
+ * Last Modified : 11/12/2017 - 16:51
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *

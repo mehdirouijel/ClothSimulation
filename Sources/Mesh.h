@@ -2,10 +2,11 @@
 #define _MESH_H_
 
 /* ==========================================================================================
+ * Project Name  : ClothSimulation
  * File Name     : Mesh.h
  *
  * Creation Date : 09/12/2017 - 06:58
- * Last Modified : 10/12/2017 - 17:22
+ * Last Modified : 11/12/2017 - 16:51
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *

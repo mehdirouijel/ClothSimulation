@@ -2,10 +2,11 @@
 #define _MODEL_H_
 
 /* ==========================================================================================
+ * Project Name  : ClothSimulation
  * File Name     : Model.h
  *
  * Creation Date : 09/12/2017 - 08:08
- * Last Modified : 11/12/2017 - 09:37
+ * Last Modified : 11/12/2017 - 16:51
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *

@@ -1,9 +1,9 @@
 /* ==========================================================================================
- * Project Name  : ZelosEngine
+ * Project Name  : ClothSimulation
  * File Name     : Shader.cpp
  *
  * Creation Date : 09/27/2017
- * Last Modified : 09/12/2017 - 11:49
+ * Last Modified : 11/12/2017 - 16:51
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *

@@ -1,9 +1,9 @@
 /* ==========================================================================================
- * Project Name  : ZelosEngine
- * File Name     : ZelosEngine.cpp
+ * Project Name  : ClothSimulation
+ * File Name     : ClothSimulation.cpp
  *
  * Creation Date : 09/24/2017
- * Last Modified : 11/12/2017 - 14:24
+ * Last Modified : 11/12/2017 - 16:51
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *

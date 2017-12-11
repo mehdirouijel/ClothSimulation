@@ -3,12 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26403.7
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "ZelosEngine", "ZelosEngine.exe", "{71D81B2D-1DD8-4F68-91D7-A5929B969795}"
+Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "ClothSimulation", "ClothSimulation.exe", "{9FC04F90-1208-4DCA-A8C7-AA2695437C6B}"
 	ProjectSection(DebuggerProjectSystem) = preProject
 		PortSupplier = 00000000-0000-0000-0000-000000000000
-		Executable = w:\ZelosEngine\Build\ZelosEngine.exe
+		Executable = w:\ClothSimulation\Build\ClothSimulation.exe
 		RemoteMachine = DESKTOP-FJME7D3
-		StartingDirectory = w:\ZelosEngine\Build
+		StartingDirectory = w:\ClothSimulation\Build
 		Environment = Default
 		LaunchingEngine = 00000000-0000-0000-0000-000000000000
 		UseLegacyDebugEngines = No
@@ -21,7 +21,7 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{71D81B2D-1DD8-4F68-91D7-A5929B969795}.Release|x86.ActiveCfg = Release|x86
+		{9FC04F90-1208-4DCA-A8C7-AA2695437C6B}.Release|x86.ActiveCfg = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

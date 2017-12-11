@@ -1,8 +1,9 @@
 /* ==========================================================================================
+ * Project Name  : ClothSimulation
  * File Name     : Model.cpp
  *
  * Creation Date : 09/12/2017 - 08:09
- * Last Modified : 11/12/2017 - 09:37
+ * Last Modified : 11/12/2017 - 16:51
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *

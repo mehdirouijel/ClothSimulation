@@ -2,8 +2,7 @@
 #define _SHADER_H_
 
 /* ==========================================================================================
- * Project Name  : ZelosEngine
- *
+ * Project Name  : ClothSimulation
  * File Name     : Shader.h
  *
  * Creation Date : 09/27/2017

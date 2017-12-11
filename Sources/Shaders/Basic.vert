@@ -1,9 +1,9 @@
 /* ==========================================================================================
- * Project Name  : ZelosEngine
+ * Project Name  : ClothSimulation
  * File Name     : Basic.vert
  *
  * Creation Date : 09/28/2017
- * Last Modified : 11/12/2017 - 13:32
+ * Last Modified : 11/12/2017 - 16:51
  * ==========================================================================================
  * Description   : VERTEX SHADER
  *                 Largely based on the tutorials found here : https://learnopengl.com/

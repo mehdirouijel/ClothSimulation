@@ -1,9 +1,9 @@
 /* ==========================================================================================
- * Project Name  : ZelosEngine
+ * Project Name  : ClothSimulation
  * File Name     : Ground.frag
  *
  * Creation Date : 09/28/2017
- * Last Modified : 11/12/2017 - 13:32
+ * Last Modified : 11/12/2017 - 16:51
  * ==========================================================================================
  * Description   : FRAGMENT SHADER
  *                 Largely based on the tutorials found here : https://learnopengl.com/
@@ -42,7 +42,6 @@ in VertexData
 uniform vec3 CameraPosition;
 uniform sampler2D NoiseTexture;
 uniform sampler2D CheckeredTexture;
-uniform sampler2D DepthTexture;
 uniform float Shininess;
 uniform light Light;
 

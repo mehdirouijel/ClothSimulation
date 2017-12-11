@@ -1,10 +1,10 @@
 @echo off
 REM ==========================================================================================
-REM Project Name  : ZelosEngine
+REM Project Name  : ClothSimulation
 REM File Name     : build.bat
 REM
 REM Creation Date : 09/24/2017
-REM Last Modified : 09/12/2017 - 08:55
+REM Last Modified : 11/12/2017 - 16:51
 REM ==========================================================================================
 REM Description   : Build configuration
 REM
@@ -28,7 +28,7 @@ pushd ..\Build
 cl %CompilerFlags% -c ..\Sources\glad.c /I %IncludesPath%
 cl %CompilerFlags% -c ..\Sources\*.cpp /I %IncludesPath%
 echo.
-cl %CompilerFlags% *.obj /link %LinkerFlags% /OUT:ZelosEngine.exe
+cl %CompilerFlags% *.obj /link %LinkerFlags% /OUT:ClothSimulation.exe
 @echo.
 @echo Compilation finished on - %date% - %time:~0,2%:%time:~3,2%,%time:~6,2% -
 
