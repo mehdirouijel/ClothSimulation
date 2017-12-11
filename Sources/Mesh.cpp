@@ -3,7 +3,7 @@
  * File Name     : Mesh.cpp
  *
  * Creation Date : 09/12/2017 - 07:06
- * Last Modified : 11/12/2017 - 16:51
+ * Last Modified : 11/12/2017 - 17:43
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -28,13 +28,16 @@ Mesh::Mesh(std::vector<Vertex> vertices,
     Indices = indices;
     Neighbors = neighbors;
 
+    std::vector<unsigned int> constraintCount(vertices.size());
     for (auto it = Neighbors.begin(); it != Neighbors.end(); ++it)
     {
         for (auto neighborIt = it->second.begin(); neighborIt != it->second.end(); ++neighborIt)
         {
-            DistConstraints.push_back(DistanceConstraint(this, it->first, (*neighborIt)));
+            DistConstraints.push_back(DistanceConstraint(this, it->first, (*neighborIt), &constraintCount));
         }
     }
+
+    ConstraintCount = constraintCount;
 
     Initialize();
 }

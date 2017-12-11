@@ -3,7 +3,7 @@
  * File Name     : ClothSimulation.cpp
  *
  * Creation Date : 09/24/2017
- * Last Modified : 11/12/2017 - 16:51
+ * Last Modified : 11/12/2017 - 18:38
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -35,7 +35,7 @@ const unsigned int SCREEN_HEIGHT = 720;
 
 const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
 
-const unsigned int SOLVER_ITERATIONS = 20;
+const unsigned int SOLVER_ITERATIONS = 2;
 
 
 float LastTime = 0.0f;
@@ -255,7 +255,7 @@ main()
         float mass;
 
         // Find closest fixed vertex
-        float minDist = 999999.9f;
+        float minDist = 99999.9f;
         unsigned int closestFixed;
         for (unsigned int closest = 0; closest < cloth.TopRow.size(); ++closest)
         {
@@ -269,7 +269,7 @@ main()
 
         // Mass relative to distance from closest fixed vertex.
         // minDist will be 0 for fixed vertices => infinite inverse mass => they won't move.
-        mass = 20.0f * minDist;
+        mass = 50.0f / minDist;
 
         mesh->Masses.push_back(mass);
         mesh->InvMasses.push_back(1.0f / mesh->Masses[index]);
@@ -317,13 +317,15 @@ main()
         // SIMULATION
         // ----------
         //
+        std::fill(tentativePositions.begin(), tentativePositions.end(), glm::vec3(0.0f, 0.0f, 0.0f));
+        std::fill(deltaPositions.begin(), deltaPositions.end(), glm::vec3(0.0f, 0.0f, 0.0f));
 
         for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
         {
             //if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
-            //if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
+            if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
             {
-                mesh->Velocities[index] += mesh->InvMasses[index] * glm::vec3(0.0f, -20.0f, 0.0f) * DeltaTime;
+                mesh->Velocities[index] += mesh->InvMasses[index] * glm::vec3(0.0f, -50.0f, 0.0f) * DeltaTime;
                 tentativePositions[index] = mesh->Vertices[index].Position + mesh->Velocities[index] * DeltaTime;
             }
         }
@@ -341,7 +343,13 @@ main()
                  constraintIt != mesh->DistConstraints.end();
                  ++constraintIt)
             {
-                constraintIt->Solve(mesh, &tentativePositions);
+                constraintIt->Solve(mesh, &deltaPositions);
+            }
+
+            // Over-relaxation
+            for (unsigned int i = 0; i < mesh->Vertices.size(); ++i)
+            {
+                tentativePositions[i] += 0.1f/(float)mesh->ConstraintCount[i] * deltaPositions[i];
             }
         }
 
@@ -349,7 +357,7 @@ main()
         for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
         {
             //if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
-            //if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
+            if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
             {
                 mesh->Velocities[index] = (tentativePositions[index] - mesh->Vertices[index].Position) * 1.0f / DeltaTime;
             }
@@ -359,7 +367,7 @@ main()
         for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
         {
             //if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
-            //if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
+            if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
             {
                 if (glm::distance(tentativePositions[index], mesh->Vertices[index].Position) > 0.001f)
                 {

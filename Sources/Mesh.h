@@ -6,7 +6,7 @@
  * File Name     : Mesh.h
  *
  * Creation Date : 09/12/2017 - 06:58
- * Last Modified : 11/12/2017 - 16:51
+ * Last Modified : 11/12/2017 - 17:41
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -46,6 +46,7 @@ public:
     std::vector<float> Masses;
     std::vector<float> InvMasses;
     std::vector<DistanceConstraint> DistConstraints;
+    std::vector<unsigned int> ConstraintCount;
 
     unsigned int VAO;
 
