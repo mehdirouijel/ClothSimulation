@@ -5,7 +5,7 @@
  * File Name     : Model.h
  *
  * Creation Date : 09/12/2017 - 08:08
- * Last Modified : 10/12/2017 - 18:57
+ * Last Modified : 11/12/2017 - 09:37
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -32,6 +32,7 @@ public:
     std::string Directory;
     unsigned int TopLeftIndex;
     unsigned int TopRightIndex;
+    std::vector<unsigned int> TopRow;
 
     Model(const std::string &path, const glm::vec3 &color = glm::vec3(0.5f, 0.5f, 0.5f));
 

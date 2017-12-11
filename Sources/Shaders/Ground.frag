@@ -3,7 +3,7 @@
  * File Name     : Ground.frag
  *
  * Creation Date : 09/28/2017
- * Last Modified : 09/12/2017 - 17:29
+ * Last Modified : 11/12/2017 - 13:32
  * ==========================================================================================
  * Description   : FRAGMENT SHADER
  *                 Largely based on the tutorials found here : https://learnopengl.com/
@@ -42,6 +42,7 @@ in VertexData
 uniform vec3 CameraPosition;
 uniform sampler2D NoiseTexture;
 uniform sampler2D CheckeredTexture;
+uniform sampler2D DepthTexture;
 uniform float Shininess;
 uniform light Light;
 
@@ -65,7 +66,7 @@ void main()
     // -----------------
 
     float diffuseCoeff = max(dot(normal, lightDirection), 0.0f);
-    vec3 diffuse = Light.diffuseIntensity * diffuseCoeff * texture(CheckeredTexture, TexCoords).stp;
+    vec3 diffuse = Light.diffuseIntensity * diffuseCoeff * Light.color;
 
 
     // Specular Component
@@ -75,7 +76,7 @@ void main()
     vec3 reflectDirection = reflect(-lightDirection, normal);
 
     float specularCoeff = pow(max(dot(cameraDirection, reflectDirection), 0.0f), Shininess);
-    vec3 specular = Light.specularIntensity * specularCoeff * texture(CheckeredTexture, TexCoords).stp;
+    vec3 specular = Light.specularIntensity * specularCoeff * Light.color;
 
 
     // Spotlight Effect
@@ -98,8 +99,7 @@ void main()
     diffuse *= attenuation;
     specular *= attenuation;
     
-
-    finalColor = ambient + diffuse + specular;
+    finalColor = (ambient + diffuse + specular) * texture(CheckeredTexture, TexCoords).stp;
 
     // Dithering
     // ---------

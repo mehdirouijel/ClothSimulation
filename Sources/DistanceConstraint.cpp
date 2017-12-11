@@ -2,7 +2,7 @@
  * File Name     : DistanceConstraint.cpp
  *
  * Creation Date : 10/12/2017 - 16:40
- * Last Modified : 10/12/2017 - 18:47
+ * Last Modified : 11/12/2017 - 08:51
  * ==========================================================================================
  * Description   :
  *
@@ -32,8 +32,9 @@ DistanceConstraint::Solve(Mesh *mesh, std::vector<glm::vec3> *tentativePositions
     float w2 = mesh->InvMasses[Vertex2Index];
 
     float distance = glm::distance(p1, p2);
+    glm::vec3 delta;
 
-    glm::vec3 delta = (1.0f/(w1 + w2)) * (distance - RestLength) * glm::normalize(p1 - p2);
+    delta = (1.0f/(w1 + w2)) * (distance - RestLength) * glm::normalize(p1 - p2);
 
     glm::vec3 deltaP1 = -delta;
     glm::vec3 deltaP2 = delta;

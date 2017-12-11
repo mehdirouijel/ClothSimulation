@@ -3,7 +3,7 @@
  * File Name     : ZelosEngine.cpp
  *
  * Creation Date : 09/24/2017
- * Last Modified : 10/12/2017 - 19:10
+ * Last Modified : 11/12/2017 - 14:24
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -35,7 +35,7 @@ const unsigned int SCREEN_HEIGHT = 720;
 
 const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
 
-const unsigned int SOLVER_ITERATIONS = 30;
+const unsigned int SOLVER_ITERATIONS = 20;
 
 
 float LastTime = 0.0f;
@@ -118,13 +118,14 @@ main()
     glm::mat4 view;
     glm::mat4 projection;
     glm::mat4 normalMatrix;
+    float lightCutOffAngle = 18.0f;
 
     Light light;
     light.Position = glm::vec3(10.0f, 12.0f, 10.0f);
     light.Direction = glm::normalize(-light.Position);
     light.Color = glm::vec3(0.9f, 0.9f, 0.8f);
-    light.CutOff = glm::cos(glm::radians(18.0f));
-    light.OuterCutOff = glm::cos(glm::radians(23.0f));
+    light.CutOff = glm::cos(glm::radians(lightCutOffAngle));
+    light.OuterCutOff = glm::cos(glm::radians(lightCutOffAngle + 5.0f));
     light.AmbientIntensity = glm::vec3(0.2f, 0.2f, 0.2f);
     light.DiffuseIntensity = glm::vec3(0.8f, 0.8f, 0.8f);
     light.SpecularIntensity = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -145,7 +146,6 @@ main()
     //   -----------
 
     Model ground("../Assets/groundPlane.obj", glm::vec3(0.75f, 0.75f, 0.8f));
-    //Model pole("../Assets/pole.obj", glm::vec3(0.8f, 0.8f, 0.8f));
     Model cloth("../Assets/cloth.obj", glm::vec3(0.1f, 0.5f, 0.6f));
 
 
@@ -211,7 +211,7 @@ main()
     //   --------
 
     SHDR_basic.Use(); // Activate shader to set uniforms
-    SHDR_basic.SetInt("NoiseTexture", 0); // Set uniforms
+    SHDR_basic.SetInt("NoiseTexture", 0);
     SHDR_basic.SetVec3("CameraPosition", camera.Position);
     SHDR_basic.SetVec3("Light.position", light.Position);
     SHDR_basic.SetVec3("Light.direction", light.Direction);
@@ -227,7 +227,8 @@ main()
     SHDR_basic.SetFloat("Shininess", 32.0f);
 
     SHDR_ground.Use();
-    SHDR_ground.SetInt("CheckeredTexture", 1); // Set uniforms
+    SHDR_basic.SetInt("NoiseTexture", 0);
+    SHDR_ground.SetInt("CheckeredTexture", 1);
     SHDR_ground.SetVec3("CameraPosition", camera.Position);
     SHDR_ground.SetVec3("Light.position", light.Position);
     SHDR_ground.SetVec3("Light.direction", light.Direction);
@@ -251,7 +252,25 @@ main()
 
     for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
     {
-        float mass = 0.5f;
+        float mass;
+
+        // Find closest fixed vertex
+        float minDist = 999999.9f;
+        unsigned int closestFixed;
+        for (unsigned int closest = 0; closest < cloth.TopRow.size(); ++closest)
+        {
+            float dist = glm::distance(mesh->Vertices[cloth.TopRow[closest]].Position, mesh->Vertices[index].Position);
+            if (dist < minDist)
+            {
+                minDist = dist;
+                closestFixed = closest;
+            }
+        }
+
+        // Mass relative to distance from closest fixed vertex.
+        // minDist will be 0 for fixed vertices => infinite inverse mass => they won't move.
+        mass = 20.0f * minDist;
+
         mesh->Masses.push_back(mass);
         mesh->InvMasses.push_back(1.0f / mesh->Masses[index]);
         mesh->Velocities.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -270,7 +289,6 @@ main()
 
         // Process input.
         ProcessInput(window);
-        //mesh->Vertices[cloth.TopLeftIndex].Position.x += 0.001f * glm::cos(DeltaTime);
 
         // Render.
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -295,17 +313,28 @@ main()
         ground.Draw(SHDR_ground);
 
 
+        //
+        // SIMULATION
+        // ----------
+        //
+
         for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
         {
-            if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
+            //if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
+            //if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
             {
-                mesh->Velocities[index] += mesh->Masses[index] * glm::vec3(0.0f, -20.0f, 0.0f) * DeltaTime * DeltaTime;
+                mesh->Velocities[index] += mesh->InvMasses[index] * glm::vec3(0.0f, -20.0f, 0.0f) * DeltaTime;
                 tentativePositions[index] = mesh->Vertices[index].Position + mesh->Velocities[index] * DeltaTime;
             }
         }
 
+        // TODO(): Add collision detection.
+        //  - Find particles (any object) in a given radius
+        //  - Solve for collision
+
+        // TODO(): Add bending constraint.
+
         // c.f. Unified Particle Physics paper Algorithm 3
-        // Simple distance constraint. c.f. PBD paper 3.3
         for (unsigned int index = 0; index < SOLVER_ITERATIONS; ++index)
         {
             for (auto constraintIt = mesh->DistConstraints.begin();
@@ -319,20 +348,31 @@ main()
         // Update velocities.
         for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
         {
-            if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
+            //if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
+            //if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
             {
-                mesh->Velocities[index] = (tentativePositions[index] - mesh->Vertices[index].Position) / DeltaTime;
+                mesh->Velocities[index] = (tentativePositions[index] - mesh->Vertices[index].Position) * 1.0f / DeltaTime;
             }
         }
 
         // Update positions.
         for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
         {
-            if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
+            //if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
+            //if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
             {
-                mesh->Vertices[index].Position = tentativePositions[index];
+                if (glm::distance(tentativePositions[index], mesh->Vertices[index].Position) > 0.001f)
+                {
+                    mesh->Vertices[index].Position = tentativePositions[index];
+                }
             }
         }
+
+
+        //
+        // RENDERING SIMULATION RESULT
+        // ---------------------------
+        //
 
         cloth.Update();
 
@@ -340,13 +380,6 @@ main()
         SHDR_basic.Use();
         SHDR_basic.SetMat4("Projection", projection);
         SHDR_basic.SetMat4("View", view);
-
-        //model = glm::translate(glm::mat4(1.0f), glm::vec3(-4.0f, 0.0f, 4.0f));
-        //normalMatrix = glm::transpose(glm::inverse(model));
-        //SHDR_basic.SetMat4("Model", model);
-        //SHDR_basic.SetMat4("NormalMatrix", normalMatrix);
-        //pole.Draw(SHDR_basic);
-
         model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.95f, 4.0f));
         normalMatrix = glm::transpose(glm::inverse(model));
         SHDR_basic.SetMat4("Model", model);

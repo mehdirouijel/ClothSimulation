@@ -2,7 +2,7 @@
  * File Name     : Model.cpp
  *
  * Creation Date : 09/12/2017 - 08:09
- * Last Modified : 10/12/2017 - 18:57
+ * Last Modified : 11/12/2017 - 09:37
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -151,6 +151,14 @@ Model::ProcessMesh(const aiScene *scene, aiMesh *mesh)
         }
     }
 
+    for (unsigned int index = 0; index < mesh->mNumVertices; ++index)
+    {
+        if (mesh->mVertices[index].y == maxY)
+        {
+            TopRow.push_back(index);
+        }
+    }
+
     for (unsigned int faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex)
     {
         aiFace face = mesh->mFaces[faceIndex];
@@ -160,7 +168,7 @@ Model::ProcessMesh(const aiScene *scene, aiMesh *mesh)
             indices.push_back(face.mIndices[index]);
         }
 
-        // Find neighbors.
+        // Find adjacent vertices.
         for (unsigned int vertexIndex = 0; vertexIndex < face.mNumIndices; ++vertexIndex)
         {
             auto ret = neighbors.insert(std::pair<unsigned int, std::vector<unsigned int>>(

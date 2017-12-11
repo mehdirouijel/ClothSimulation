@@ -3,7 +3,7 @@
  * File Name     : Basic.frag
  *
  * Creation Date : 09/28/2017
- * Last Modified : 10/12/2017 - 06:55
+ * Last Modified : 11/12/2017 - 13:32
  * ==========================================================================================
  * Description   : FRAGMENT SHADER
  *                 Largely based on the tutorials found here : https://learnopengl.com/
@@ -65,7 +65,7 @@ void main()
     // -----------------
 
     float diffuseCoeff = max(dot(normal, lightDirection), 0.0f);
-    vec3 diffuse = Light.diffuseIntensity * diffuseCoeff * Color.rgb;
+    vec3 diffuse = Light.diffuseIntensity * diffuseCoeff * Light.color;
 
 
     // Specular Component
@@ -75,7 +75,7 @@ void main()
     vec3 reflectDirection = reflect(-lightDirection, normal);
 
     float specularCoeff = pow(max(dot(cameraDirection, reflectDirection), 0.0f), Shininess);
-    vec3 specular = Light.specularIntensity * specularCoeff * Color.rgb;
+    vec3 specular = Light.specularIntensity * specularCoeff * Light.color;
 
 
     // Spotlight Effect
@@ -99,7 +99,7 @@ void main()
     specular *= attenuation;
 
     
-    finalColor = ambient + diffuse + specular;
+    finalColor = (ambient + diffuse + specular) * Color.rgb;
 
     // Dithering
     // ---------
