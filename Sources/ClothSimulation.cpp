@@ -3,7 +3,7 @@
  * File Name     : ClothSimulation.cpp
  *
  * Creation Date : 09/24/2017
- * Last Modified : 12/12/2017 - 20:09
+ * Last Modified : 12/12/2017 - 21:10
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *                 Other references used:
@@ -142,8 +142,8 @@ main()
     light.Color = glm::vec3(0.9f, 0.9f, 0.8f);
     light.CutOff = glm::cos(glm::radians(lightCutOffAngle));
     light.OuterCutOff = glm::cos(glm::radians(lightCutOffAngle + 5.0f));
-    light.AmbientIntensity = glm::vec3(0.1f, 0.1f, 0.1f);
-    light.DiffuseIntensity = glm::vec3(0.7f, 0.7f, 0.7f);
+    light.AmbientIntensity = glm::vec3(0.3f, 0.3f, 0.3f);
+    light.DiffuseIntensity = glm::vec3(0.9f, 0.9f, 0.9f);
     light.SpecularIntensity = glm::vec3(0.2f, 0.2f, 0.2f);
     // Attenuation values from: http://wiki.ogre3d.org/tiki-index.php?page=-Point+Light+Attenuation
     light.ConstantAtt = 1.0f;
@@ -364,12 +364,12 @@ main()
                 {
                     constraintIt->Solve(mesh, &deltaPositions);
                 }
+            }
 
-                // Over-relaxation
-                for (unsigned int i = 0; i < mesh->Vertices.size(); ++i)
-                {
-                    tentativePositions[i] += 1.0f/(float)mesh->ConstraintCount[i] * deltaPositions[i];
-                }
+            // Over-relaxation
+            for (unsigned int i = 0; i < mesh->Vertices.size(); ++i)
+            {
+                tentativePositions[i] += 2.0f/(float)mesh->ConstraintCount[i] * deltaPositions[i];
             }
 
             // Update velocities.
