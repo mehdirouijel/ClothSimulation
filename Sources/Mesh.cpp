@@ -3,7 +3,7 @@
  * File Name     : Mesh.cpp
  *
  * Creation Date : 09/12/2017 - 07:06
- * Last Modified : 11/12/2017 - 17:43
+ * Last Modified : 12/12/2017 - 19:48
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -22,11 +22,13 @@
 
 Mesh::Mesh(std::vector<Vertex> vertices,
            std::vector<unsigned int> indices,
+           std::vector<Face> faces,
            std::map<unsigned int, std::vector<unsigned int>> neighbors)
 {
     Vertices = vertices;
     Indices = indices;
     Neighbors = neighbors;
+    Faces = faces;
 
     std::vector<unsigned int> constraintCount(vertices.size());
     for (auto it = Neighbors.begin(); it != Neighbors.end(); ++it)
@@ -43,8 +45,64 @@ Mesh::Mesh(std::vector<Vertex> vertices,
 }
 
 void
-Mesh::Update()
+Mesh::RecalculateNormals()
 {
+    // Calculate triangle normal and apply to each vertex of that triangle.
+    for (auto it = Faces.begin(); it != Faces.end(); ++it)
+    {
+        glm::vec3 e0 = (Vertices[it->Indices[0]].Position - Vertices[it->Indices[1]].Position);
+        glm::vec3 e1 = (Vertices[it->Indices[0]].Position - Vertices[it->Indices[2]].Position);
+
+        it->Normal = glm::normalize(glm::cross(e0, e1));
+
+        for (unsigned int index = 0; index < 3; ++index)
+        {
+            Vertices[it->Indices[index]].Normal = it->Normal;
+        }
+    }
+
+    // The vertex' normal is the average of the normals of each triangle it belongs to.
+    for (unsigned int vertexIndex = 0; vertexIndex < Vertices.size(); ++vertexIndex)
+    {
+        glm::vec3 sum(0.0f, 0.0f, 0.0f);
+        unsigned int count = 0;
+
+        for (auto faceIt = Faces.begin(); faceIt != Faces.end(); ++faceIt)
+        {
+            if ((vertexIndex == faceIt->Indices[0]) ||
+                (vertexIndex == faceIt->Indices[0]) ||
+                (vertexIndex == faceIt->Indices[0]))
+            {
+                sum += faceIt->Normal;
+                ++count;
+            }
+        }
+
+        sum.x /= (float)count;
+        sum.y /= (float)count;
+        sum.z /= (float)count;
+
+        //if (glm::dot(Vertices[vertexIndex].Normal, sum) > 0.0f)
+        //{
+            Vertices[vertexIndex].Normal = sum;
+        //}
+        //else
+        //{
+            //Vertices[vertexIndex].Normal = -sum;
+        //}
+
+        Vertices[vertexIndex].Normal = glm::normalize(Vertices[vertexIndex].Normal);
+    }
+}
+
+void
+Mesh::Update(bool updateNormals)
+{
+    if (updateNormals)
+    {
+        RecalculateNormals();
+    }
+
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, Vertices.size()*sizeof(Vertex), &Vertices[0], GL_STATIC_DRAW);

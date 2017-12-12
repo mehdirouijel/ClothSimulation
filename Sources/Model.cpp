@@ -3,7 +3,7 @@
  * File Name     : Model.cpp
  *
  * Creation Date : 09/12/2017 - 08:09
- * Last Modified : 11/12/2017 - 16:51
+ * Last Modified : 12/12/2017 - 19:36
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -27,11 +27,11 @@ Model::Model(const std::string &path, const glm::vec3 &color)
 }
 
 void
-Model::Update()
+Model::Update(bool updateNormals)
 {
     for (unsigned int index = 0; index < Meshes.size(); ++index)
     {
-        Meshes[index].Update();
+        Meshes[index].Update(updateNormals);
     }
 }
 
@@ -88,6 +88,7 @@ Model::ProcessMesh(const aiScene *scene, aiMesh *mesh)
 {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
+    std::vector<Face> faces;
     std::map<unsigned int, std::vector<unsigned int>> neighbors;
     float maxY = 0.0f;
     float minX = 9999.9f;
@@ -163,10 +164,12 @@ Model::ProcessMesh(const aiScene *scene, aiMesh *mesh)
     for (unsigned int faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex)
     {
         aiFace face = mesh->mFaces[faceIndex];
+        faces.push_back({});
 
         for (unsigned int index = 0; index < face.mNumIndices; ++index)
         {
             indices.push_back(face.mIndices[index]);
+            faces[faceIndex].Indices[index] = face.mIndices[index];
         }
 
         // Find adjacent vertices.
@@ -198,6 +201,6 @@ Model::ProcessMesh(const aiScene *scene, aiMesh *mesh)
         }
     }
 
-    return Mesh(vertices, indices, neighbors);
+    return Mesh(vertices, indices, faces, neighbors);
 }
 

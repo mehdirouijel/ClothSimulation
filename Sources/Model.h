@@ -6,7 +6,7 @@
  * File Name     : Model.h
  *
  * Creation Date : 09/12/2017 - 08:08
- * Last Modified : 11/12/2017 - 16:51
+ * Last Modified : 12/12/2017 - 19:36
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -37,7 +37,7 @@ public:
 
     Model(const std::string &path, const glm::vec3 &color = glm::vec3(0.5f, 0.5f, 0.5f));
 
-    void Update();
+    void Update(bool updateNormals);
     void Draw(Shader shader);
 
 

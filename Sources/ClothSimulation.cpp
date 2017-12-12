@@ -3,9 +3,18 @@
  * File Name     : ClothSimulation.cpp
  *
  * Creation Date : 09/24/2017
- * Last Modified : 11/12/2017 - 18:38
+ * Last Modified : 12/12/2017 - 20:09
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
+ *                 Other references used:
+ *                 (1) https://www.youtube.com/watch?v=b2An7OJJ-j0
+ *                     (lecture on Position-Based Dynamics from the University of Utah)
+ *
+ *                 (2) https://github.com/jnnyt93/senior_project
+ *                     (student project from the class (1))
+ *
+ *                 (3) https://github.com/InteractiveComputerGraphics/PositionBasedDynamics
+ *                     (Position-Based Dynamics library)
  *
  * Author        : Mehdi Rouijel
  * ========================================================================================== */
@@ -35,7 +44,7 @@ const unsigned int SCREEN_HEIGHT = 720;
 
 const glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
 
-const unsigned int SOLVER_ITERATIONS = 2;
+const unsigned int SOLVER_ITERATIONS = 5;
 
 
 float LastTime = 0.0f;
@@ -48,6 +57,13 @@ bool FirstMouseInput = true;
 bool CursorEnabled = true;
 bool TabWasPressed = false;
 bool TabIsPressed = false;
+bool WireframeMode = false;
+bool FWasPressed = false;
+bool FIsPressed = false;
+bool SimulationRunning = false;
+bool SpaceWasPressed = false;
+bool SpaceIsPressed = false;
+bool UpdateNormals = true;
 
 
 // PROTOTYPES
@@ -126,9 +142,9 @@ main()
     light.Color = glm::vec3(0.9f, 0.9f, 0.8f);
     light.CutOff = glm::cos(glm::radians(lightCutOffAngle));
     light.OuterCutOff = glm::cos(glm::radians(lightCutOffAngle + 5.0f));
-    light.AmbientIntensity = glm::vec3(0.2f, 0.2f, 0.2f);
-    light.DiffuseIntensity = glm::vec3(0.8f, 0.8f, 0.8f);
-    light.SpecularIntensity = glm::vec3(1.0f, 1.0f, 1.0f);
+    light.AmbientIntensity = glm::vec3(0.1f, 0.1f, 0.1f);
+    light.DiffuseIntensity = glm::vec3(0.7f, 0.7f, 0.7f);
+    light.SpecularIntensity = glm::vec3(0.2f, 0.2f, 0.2f);
     // Attenuation values from: http://wiki.ogre3d.org/tiki-index.php?page=-Point+Light+Attenuation
     light.ConstantAtt = 1.0f;
     light.LinearAtt = 0.027f;
@@ -152,11 +168,6 @@ main()
     //
     // GPU DATA
     // --------
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glEnable(GL_DEPTH_TEST);
-
-
     //   Textures
     //   --------
 
@@ -276,10 +287,12 @@ main()
         mesh->Velocities.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
     }
 
+
     //
     // RENDER LOOP
     // -----------
 
+    glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window))
     {
         // Timing.
@@ -287,8 +300,11 @@ main()
         DeltaTime = currentTime - LastTime;
         LastTime = currentTime;
 
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
         // Process input.
         ProcessInput(window);
+
 
         // Render.
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -302,6 +318,7 @@ main()
 
         projection = glm::perspective(glm::radians(camera.FOV), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.0f);
         view = camera.GetViewMatrix();
+
 
         SHDR_ground.Use();
         SHDR_ground.SetMat4("Projection", projection);
@@ -317,61 +334,62 @@ main()
         // SIMULATION
         // ----------
         //
-        std::fill(tentativePositions.begin(), tentativePositions.end(), glm::vec3(0.0f, 0.0f, 0.0f));
-        std::fill(deltaPositions.begin(), deltaPositions.end(), glm::vec3(0.0f, 0.0f, 0.0f));
 
-        for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
+        if (SimulationRunning)
         {
-            //if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
-            if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
+            std::fill(tentativePositions.begin(), tentativePositions.end(), glm::vec3(0.0f, 0.0f, 0.0f));
+            std::fill(deltaPositions.begin(), deltaPositions.end(), glm::vec3(0.0f, 0.0f, 0.0f));
+
+            for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
             {
-                mesh->Velocities[index] += mesh->InvMasses[index] * glm::vec3(0.0f, -50.0f, 0.0f) * DeltaTime;
-                tentativePositions[index] = mesh->Vertices[index].Position + mesh->Velocities[index] * DeltaTime;
-            }
-        }
-
-        // TODO(): Add collision detection.
-        //  - Find particles (any object) in a given radius
-        //  - Solve for collision
-
-        // TODO(): Add bending constraint.
-
-        // c.f. Unified Particle Physics paper Algorithm 3
-        for (unsigned int index = 0; index < SOLVER_ITERATIONS; ++index)
-        {
-            for (auto constraintIt = mesh->DistConstraints.begin();
-                 constraintIt != mesh->DistConstraints.end();
-                 ++constraintIt)
-            {
-                constraintIt->Solve(mesh, &deltaPositions);
-            }
-
-            // Over-relaxation
-            for (unsigned int i = 0; i < mesh->Vertices.size(); ++i)
-            {
-                tentativePositions[i] += 0.1f/(float)mesh->ConstraintCount[i] * deltaPositions[i];
-            }
-        }
-
-        // Update velocities.
-        for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
-        {
-            //if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
-            if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
-            {
-                mesh->Velocities[index] = (tentativePositions[index] - mesh->Vertices[index].Position) * 1.0f / DeltaTime;
-            }
-        }
-
-        // Update positions.
-        for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
-        {
-            //if ((index != cloth.TopLeftIndex) && (index != cloth.TopRightIndex))
-            if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
-            {
-                if (glm::distance(tentativePositions[index], mesh->Vertices[index].Position) > 0.001f)
+                if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
                 {
-                    mesh->Vertices[index].Position = tentativePositions[index];
+                    mesh->Velocities[index] += mesh->InvMasses[index] * glm::vec3(0.0f, -50.0f, 0.0f) * DeltaTime;
+                    tentativePositions[index] = mesh->Vertices[index].Position + mesh->Velocities[index] * DeltaTime;
+                }
+            }
+
+            // TODO(): Add collision detection.
+            //  (1) Find particles (any object) in a given radius
+            //  (2) Solve for collision
+
+            // TODO(): Add bending constraint.
+
+            // c.f. Unified Particle Physics paper Algorithm 3
+            for (unsigned int index = 0; index < SOLVER_ITERATIONS; ++index)
+            {
+                for (auto constraintIt = mesh->DistConstraints.begin();
+                     constraintIt != mesh->DistConstraints.end();
+                     ++constraintIt)
+                {
+                    constraintIt->Solve(mesh, &deltaPositions);
+                }
+
+                // Over-relaxation
+                for (unsigned int i = 0; i < mesh->Vertices.size(); ++i)
+                {
+                    tentativePositions[i] += 1.0f/(float)mesh->ConstraintCount[i] * deltaPositions[i];
+                }
+            }
+
+            // Update velocities.
+            for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
+            {
+                if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
+                {
+                    mesh->Velocities[index] = (tentativePositions[index] - mesh->Vertices[index].Position) * 1.0f / DeltaTime;
+                }
+            }
+
+            // Update positions.
+            for (unsigned int index = 0; index < mesh->Vertices.size(); ++index)
+            {
+                if (std::find(cloth.TopRow.begin(), cloth.TopRow.end(), index) == cloth.TopRow.end())
+                {
+                    if (glm::length(mesh->Velocities[index]) > 0.001f)
+                    {
+                        mesh->Vertices[index].Position = tentativePositions[index];
+                    }
                 }
             }
         }
@@ -382,7 +400,16 @@ main()
         // ---------------------------
         //
 
-        cloth.Update();
+        if (WireframeMode)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+        else
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+
+        cloth.Update(UpdateNormals);
 
 
         SHDR_basic.Use();
@@ -400,12 +427,6 @@ main()
         glfwSwapBuffers(window);
     }
 
-
-    // Not really necessary if we quit the program right then
-    // and there, but I like to be thorough and explicit.
-    //glDeleteVertexArrays(1, &vao);
-    //glDeleteBuffers(1, &vbo);
-    //glDeleteBuffers(1, &ebo);
 
     glfwTerminate();
     return 0;
@@ -429,6 +450,22 @@ ProcessInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_RELEASE)
     {
         TabIsPressed = false;
+    }
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+    {
+        FIsPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE)
+    {
+        FIsPressed = false;
+    }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+        SpaceIsPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+    {
+        SpaceIsPressed = false;
     }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
@@ -470,7 +507,33 @@ ProcessInput(GLFWwindow *window)
         }
     }
 
+    if (FIsPressed && !FWasPressed)
+    {
+        if (WireframeMode)
+        {
+            WireframeMode = false;
+        }
+        else
+        {
+            WireframeMode = true;
+        }
+    }
+
+    if (SpaceIsPressed && !SpaceWasPressed)
+    {
+        if (SimulationRunning)
+        {
+            SimulationRunning = false;
+        }
+        else
+        {
+            SimulationRunning = true;
+        }
+    }
+
     TabWasPressed = TabIsPressed;
+    FWasPressed = FIsPressed;
+    SpaceWasPressed = SpaceIsPressed;
 }
 
 

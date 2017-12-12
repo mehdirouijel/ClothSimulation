@@ -6,7 +6,7 @@
  * File Name     : Mesh.h
  *
  * Creation Date : 09/12/2017 - 06:58
- * Last Modified : 11/12/2017 - 17:41
+ * Last Modified : 12/12/2017 - 19:36
  * ==========================================================================================
  * Description   : Largely based on the tutorials found here : https://learnopengl.com/
  *
@@ -32,6 +32,12 @@ struct Vertex
     glm::vec3 Bitangent;
 };
 
+struct Face
+{
+    unsigned int Indices[3] = {0};
+    glm::vec3 Normal = {0.0f, 0.0f, 0.0f};
+};
+
 class Shader;
 
 
@@ -41,6 +47,7 @@ class Mesh
 public:
     std::vector<Vertex> Vertices;
     std::vector<unsigned int> Indices;
+    std::vector<Face> Faces;
     std::map<unsigned int, std::vector<unsigned int>> Neighbors;
     std::vector<glm::vec3> Velocities;
     std::vector<float> Masses;
@@ -52,10 +59,11 @@ public:
 
     Mesh(std::vector<Vertex> vertices,
          std::vector<unsigned int> indices,
+         std::vector<Face> faces,
          std::map<unsigned int, std::vector<unsigned int>> neighbors);
 
-    void FindNeighbors();
-    void Update();
+    void RecalculateNormals();
+    void Update(bool updateNormals);
     void Draw(Shader shader);
 
 
